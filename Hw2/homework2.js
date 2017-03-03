@@ -35,6 +35,12 @@ var original = vec3(0, -50, 0);
 var too = vec3(0, 0, 0);
 var towards = vec3(0, 0, 1);
 
+
+var shootProjectile = false;
+var projectileExists = false;
+var counter = 0;
+var projectileMatrix;
+
 window.onload = function init() {
 	
 	// create canvas (#2)
@@ -65,6 +71,10 @@ window.onload = function init() {
 		}
 		else if(e.keyCode===37) // (#8) four degree rotation
 			yangle-=4;
+		else if(e.keyCode===32){ // (#8) four degree rotation
+			shootProjectile = true;
+			projectileExists = true;
+		}
 		else if(e.keyCode===39) // (#8) four degree rotation
 			yangle+=4;
 		else if(e.keyCode===38) // (#7) .25 units movement
@@ -164,6 +174,9 @@ function render() {
 		//rotate and increase size(EC #4)
 		draww(i, transformM);
 	}
+	if(projectileExists){
+		draww2(0, transformM);
+		}
 	// show crosshairs(#11)
 	crosshairFunc()
 	window.requestAnimFrame(render);
@@ -199,7 +212,6 @@ function cycleColors(array) {
 		array[i] = array[i+1];
 	array[array.length-1] = first;
 }
-
 function draww(num, transformM) {
 	axisData = [0,1,0];
 	cDeg[num] += 2.4;
@@ -208,6 +220,39 @@ function draww(num, transformM) {
 	transformM = mult(transformM, viewMatrix);
 	transformM = mult(transformM, rotate(rotation, axisData));
 	transformM = mult(transformM, translate(positions[num]));
+	transformM = mult(transformM, scale([1.1,1.1,1.1]));
+	transformM = mult(transformM, rotate(cDeg[num], axisData));
+	
+	gl.uniform4fv(color, flatten(cColors[num]));
+    	gl.uniformMatrix4fv(modelViewMatrix, false, flatten(transformM));
+	// single triangle strip (EC #2)	
+	gl.drawArrays(gl.TRIANGLE_STRIP, 0, 24);
+
+	//draw outlines in white(#4)
+	gl.uniform4fv(color, flatten(vec4(1.0, 1.0, 1.0, 1.0)));
+	gl.drawArrays(gl.LINE_STRIP, 0, 24);
+}
+function draww2(num, transformM) {
+	axisData = [0,1,0];
+	cDeg[num] += 2.4;
+	transformM = mat4();
+	projectileMatrix = mat4();
+    transformM = mult(transformM, projectionMatrix);
+	//transformM = mult(transformM, rotate(rotation, axisData));
+	if (shootProjectile){
+		projectileMatrix = viewMatrix;
+		counter = 0;
+		shootProjectile = false;
+	}
+	else {counter+=10;
+	
+	projectileMatrix = mult(projectileMatrix, rotate(-yangle, [0,1,0]));
+    projectileMatrix = mult(projectileMatrix, rotate(-xangle, [1,0,0]));
+	projectileMatrix = mult(projectileMatrix, translate(vec3(0, 0, -3-.25*counter)));
+	transformM = mult(transformM, projectileMatrix);
+	console.log(counter);
+	}
+	//transformM = mult(transformM, translate(positions[num]));
 	transformM = mult(transformM, scale([1.1,1.1,1.1]));
 	transformM = mult(transformM, rotate(cDeg[num], axisData));
 	
