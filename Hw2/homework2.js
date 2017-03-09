@@ -21,7 +21,9 @@ var modelViewMatrix;
 var projectionMatrix;
 var orthoProjectionMatrix;
 var viewMatrix;
-var positions = [
+var matArray = [[0,0],[0,0],[0,0]];
+var deadMat = [false,false,false]
+/*var positions = [
 		vec3(-10, -10, -10),
 		vec3(-10, -10, 10),
 		vec3(-10, 10, -10),
@@ -30,6 +32,11 @@ var positions = [
 		vec3(10, -10, 10),
 		vec3(10, 10, -10),
 		vec3(10, 10, 10)
+	]*/
+	var positions = [
+		vec3(-10, 0, 0),
+		vec3(10, 0, 0),
+		vec3(20, 0, 0)
 	]
 var original = vec3(0, -50, 0);
 var too = vec3(0, 0, 0);
@@ -69,14 +76,20 @@ window.onload = function init() {
 			fov = 90;
 			projectionMatrix = perspective(90, aspect, -1, 1);
 		}
-		else if(e.keyCode===37) // (#8) four degree rotation
-			yangle-=4;
+		else if(e.keyCode===37){ // (#8) four degree rotation
+			yangle-=1;
+			console.log(matArray[0][0]);
+			console.log(matArray[0][1]);
+			}
 		else if(e.keyCode===32){ // (#8) four degree rotation
 			shootProjectile = true;
 			projectileExists = true;
 		}
-		else if(e.keyCode===39) // (#8) four degree rotation
-			yangle+=4;
+		else if(e.keyCode===39){ // (#8) four degree rotation
+			yangle+=1;
+			console.log(matArray[0][0]);
+			console.log(matArray[0][1]);
+			}
 		else if(e.keyCode===38) // (#7) .25 units movement
 			zmove-=0.25;
 		else if(e.keyCode===40) // (#7) .25 units movement
@@ -170,12 +183,14 @@ function render() {
 	var transformM = mat4();
 	
 	// draw 8 cubes (#3)
-	for(var i=0; i<8; i++) {
+	for(var i=0; i<3; i++) {
 		//rotate and increase size(EC #4)
-		draww(i, transformM);
+		if(!deadMat[i]){
+		draww(i, transformM);}
+
 	}
 	if(projectileExists){
-		draww2(0, transformM);
+		draww2(0, transformM,counter);
 		}
 	// show crosshairs(#11)
 	crosshairFunc()
@@ -215,14 +230,17 @@ function cycleColors(array) {
 function draww(num, transformM) {
 	axisData = [0,1,0];
 	cDeg[num] += 2.4;
+	var modelVieww =mat4();
 	transformM = mat4();
     	transformM = mult(transformM, projectionMatrix);
-	transformM = mult(transformM, viewMatrix);
-	transformM = mult(transformM, rotate(rotation, axisData));
-	transformM = mult(transformM, translate(positions[num]));
-	transformM = mult(transformM, scale([1.1,1.1,1.1]));
-	transformM = mult(transformM, rotate(cDeg[num], axisData));
-	
+	modelVieww = mult(modelVieww, viewMatrix);
+	modelVieww = mult(modelVieww, rotate(rotation, axisData));
+	modelVieww = mult(modelVieww, translate(positions[num]));
+	modelVieww = mult(modelVieww, scale([1.1,1.1,1.1]));
+	modelVieww = mult(modelVieww, rotate(cDeg[num], axisData));
+	matArray[num][0]=modelVieww[0][3];
+	matArray[num][1]=modelVieww[2][3];
+	transformM = mult(transformM, modelVieww);
 	gl.uniform4fv(color, flatten(cColors[num]));
     	gl.uniformMatrix4fv(modelViewMatrix, false, flatten(transformM));
 	// single triangle strip (EC #2)	
@@ -232,12 +250,13 @@ function draww(num, transformM) {
 	gl.uniform4fv(color, flatten(vec4(1.0, 1.0, 1.0, 1.0)));
 	gl.drawArrays(gl.LINE_STRIP, 0, 24);
 }
-function draww2(num, transformM) {
+function draww2(num, transformM,timerr) {
 	axisData = [0,1,0];
 	cDeg[num] += 2.4;
 	transformM = mat4();
 	projectileMatrix = mat4();
     transformM = mult(transformM, projectionMatrix);
+
 	//transformM = mult(transformM, rotate(rotation, axisData));
 	if (shootProjectile){
 		projectileMatrix = viewMatrix;
@@ -250,13 +269,16 @@ function draww2(num, transformM) {
     projectileMatrix = mult(projectileMatrix, rotate(-xangle, [1,0,0]));
 	projectileMatrix = mult(projectileMatrix, translate(vec3(0, 0, -3-.25*counter)));
 	transformM = mult(transformM, projectileMatrix);
-	console.log(counter);
 	}
 	//transformM = mult(transformM, translate(positions[num]));
 	transformM = mult(transformM, scale([1.1,1.1,1.1]));
 	transformM = mult(transformM, rotate(cDeg[num], axisData));
-	
 	gl.uniform4fv(color, flatten(cColors[num]));
+	//console.log(inverse(transformM));
+	/*if(!(counter%1000)){
+	console.log(projectileMatrix[0][3]);
+	console.log(projectileMatrix[1][3]);
+	console.log(projectileMatrix[2][3]);}*/
     	gl.uniformMatrix4fv(modelViewMatrix, false, flatten(transformM));
 	// single triangle strip (EC #2)	
 	gl.drawArrays(gl.TRIANGLE_STRIP, 0, 24);
@@ -264,4 +286,14 @@ function draww2(num, transformM) {
 	//draw outlines in white(#4)
 	gl.uniform4fv(color, flatten(vec4(1.0, 1.0, 1.0, 1.0)));
 	gl.drawArrays(gl.LINE_STRIP, 0, 24);
+	for(var i=0; i<3; i++) {
+		if(Math.sqrt(Math.pow(matArray[i][0]-projectileMatrix[0][3],2)+Math.pow(matArray[i][1]-projectileMatrix[2][3],2))<=1){
+			console.log(matArray[i][0]);
+			console.log(projectileMatrix[0][3]);
+			console.log(matArray[i][1]);
+			console.log(projectileMatrix[2][3]);
+			deadMat[i] = true;
+		}
+
+	}
 }
