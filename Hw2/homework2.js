@@ -21,7 +21,7 @@ var modelViewMatrix;
 var projectionMatrix;
 var orthoProjectionMatrix;
 var viewMatrix;
-var matArray = [[0,0],[0,0],[0,0]];
+var matArray = [[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0]];
 var deadMat = [false,false,false]
 /*var positions = [
 		vec3(-10, -10, -10),
@@ -33,13 +33,31 @@ var deadMat = [false,false,false]
 		vec3(10, 10, -10),
 		vec3(10, 10, 10)
 	]*/
-	var positions = [
-		vec3(-10, 0, 0),
-		vec3(10, 0, 0),
-		vec3(20, 0, 0)
+	var doorPositions = [
+	vec3(-10, 0, -9.6),
+		vec3(10, 0, -9.6),
+		vec3(0, 10, -9.6),
+		vec3(0, -10, -9.6)
 	]
-var original = vec3(0, -50, 0);
-var too = vec3(0, 0, 0);
+	
+	var positions = [
+		vec3(-10, 2.5, -9.6),
+		vec3(-10, 7.5, -9.6),
+		vec3(-10, -2.5, -9.6),
+		vec3(-10, -7.5, -9.6),
+		vec3(10, 2.5, -9.6),
+		vec3(10, 7.5, -9.6),
+		vec3(10, -2.5, -9.6),
+		vec3(10, -7.5, -9.6)
+	]
+	var envPositions = [
+		vec3(-10, 10, 0),
+		vec3(10, 10, 0),
+		vec3(10, -10, 0),
+		vec3(-10, -10, 0)
+	]
+var original = vec3(0, -50, -9.6);
+var too = vec3(0, 0, -9.6);
 var towards = vec3(0, 0, 1);
 
 
@@ -59,9 +77,9 @@ window.onload = function init() {
 	}
 	gl.viewport(0, 0, canvas.width, canvas.height); // set viewport
 	gl.clearColor(0.0, 0.0, 0.0, 1.0); 
-	gl.enable(gl.DEPTH_TEST); //enable z-buffer
-
-
+	gl.clearDepth(0); 
+      gl.enable(gl.DEPTH_TEST);
+	gl.depthFunc(gl.GREATER);
 
 	// set up event listener
 	// quaternions (EC #3)
@@ -97,24 +115,24 @@ window.onload = function init() {
 		else if(window.event.shiftKey && e.keyCode===187)
 			crossH = !crossH;
 		else if(e.keyCode===73) { // move camera (#9)
-			xmove -= 0.25*Math.sin(radians(yangle));
-            ymove -= 0.25*Math.cos(radians(yangle));
+			xmove -= 2.5*Math.sin(radians(yangle));
+            ymove -= 2.5*Math.cos(radians(yangle));
 		}
 		else if(e.keyCode===78)// (#10) adjust fov
 			fov--;
 		else if(e.keyCode===87) // (#10) adjust fov
 			fov++;
 		else if(e.keyCode===77) { // move camera (#9)
-			xmove += 0.25*Math.sin(radians(yangle));
-            ymove += 0.25*Math.cos(radians(yangle));
+			xmove += 2.5*Math.sin(radians(yangle));
+            ymove += 2.5*Math.cos(radians(yangle));
 		}
 		else if(e.keyCode===75) { // move camera (#9)
-			xmove -= 0.25*Math.cos(radians(yangle));
-            ymove += 0.25*Math.sin(radians(yangle));
+			xmove -= 2.5*Math.cos(radians(yangle));
+            ymove += 2.5*Math.sin(radians(yangle));
 		}
 		else if(e.keyCode===74) { // move camera (#9)
-			 xmove += 0.25*Math.cos(radians(yangle));
-            ymove -= 0.25*Math.sin(radians(yangle));
+			 xmove += 2.5*Math.cos(radians(yangle));
+            ymove -= 2.5*Math.sin(radians(yangle));
 		}
 		else if(e.keyCode===67) { // c cycles through color (#5)
 			cycleColors(cColors);
@@ -127,6 +145,11 @@ window.onload = function init() {
 		vec4(Math.random(), Math.random(), Math.random(), 1.0), 
 		vec4(Math.random(), Math.random(), Math.random(), 1.0), 
 		vec4(Math.random(), Math.random(), Math.random(), 1.0), 
+		vec4(Math.random(), Math.random(), Math.random(), 1.0), 
+		vec4(Math.random(), Math.random(), Math.random(), 1.0), 
+		vec4(Math.random(), Math.random(), Math.random(), 1.0),
+		vec4(Math.random(), Math.random(), Math.random(), 1.0),
+		vec4(Math.random(), Math.random(), Math.random(), 1.0),
 		vec4(Math.random(), Math.random(), Math.random(), 1.0), 
 		vec4(Math.random(), Math.random(), Math.random(), 1.0), 
 		vec4(Math.random(), Math.random(), Math.random(), 1.0),
@@ -150,7 +173,13 @@ window.onload = function init() {
 
 	//use same geometry data for all cubes(EC #2)
 	points = [];
-	var indices = [0, 3, 1, 2, 3, 5, 2, 6, 7, 4, 6, 5, 4, 0, 5, 1, 4, 7, 0, 3, 1, 2, 5, 6];
+	var indices = [1, 2, 0, 3, 
+	1, 2, 5, 6, 
+	6, 5, 7, 4, 
+	4, 0, 7, 3, 
+	3, 2, 7, 6, 
+	4, 0, 7, 3,
+	0, 1, 4, 5];
 	for(var i=0; i<indices.length; i++) {
 		points.push(vertices[indices[i]]);
 	}
@@ -183,10 +212,18 @@ function render() {
 	var transformM = mat4();
 	
 	// draw 8 cubes (#3)
-	for(var i=0; i<3; i++) {
+	for(var i=0; i<8; i++) {
 		//rotate and increase size(EC #4)
 		if(!deadMat[i]){
 		draww(i, transformM);}
+
+	}
+	for(var i=0; i<4; i++) {
+		drawEnv(i, transformM);
+
+	}
+	for(var i=0; i<4; i++) {
+		drawDoors(i);
 
 	}
 	if(projectileExists){
@@ -236,15 +273,59 @@ function draww(num, transformM) {
 	modelVieww = mult(modelVieww, viewMatrix);
 	modelVieww = mult(modelVieww, rotate(rotation, axisData));
 	modelVieww = mult(modelVieww, translate(positions[num]));
-	modelVieww = mult(modelVieww, scale([1.1,1.1,1.1]));
-	modelVieww = mult(modelVieww, rotate(cDeg[num], axisData));
+	//modelVieww = mult(modelVieww, rotate(cDeg[num], axisData));
 	matArray[num][0]=modelVieww[0][3];
 	matArray[num][1]=modelVieww[2][3];
 	transformM = mult(transformM, modelVieww);
-	gl.uniform4fv(color, flatten(cColors[num]));
+	for(var i=0;i<27;i+=4){
+		gl.uniform4fv(color, flatten(cColors[i%11]));
     	gl.uniformMatrix4fv(modelViewMatrix, false, flatten(transformM));
-	// single triangle strip (EC #2)	
-	gl.drawArrays(gl.TRIANGLE_STRIP, 0, 24);
+	// single triangle strip (EC #2)
+	gl.drawArrays(gl.TRIANGLE_STRIP, i, 3);
+	gl.drawArrays(gl.TRIANGLE_STRIP, i+1, 3);
+	}
+
+	//draw outlines in white(#4)
+	gl.uniform4fv(color, flatten(vec4(1.0, 1.0, 1.0, 1.0)));
+	gl.drawArrays(gl.LINE_STRIP, 0, 24);
+}
+function drawDoors(num) {
+	axisData = [0,1,0];
+	cDeg[num] += 2.4;
+	var modelVieww =mat4();
+	transformM = mat4();
+    	transformM = mult(transformM, projectionMatrix);
+	modelVieww = mult(modelVieww, viewMatrix);
+	modelVieww = mult(modelVieww, translate(doorPositions[num]));
+	//modelVieww = mult(modelVieww, rotate(cDeg[num], axisData));
+	transformM = mult(transformM, modelVieww);
+	for(var i=0;i<27;i+=4){
+		gl.uniform4fv(color, flatten(vec4(0, 0, 0, 1.0)));
+    	gl.uniformMatrix4fv(modelViewMatrix, false, flatten(transformM));
+	// single triangle strip (EC #2)
+	gl.drawArrays(gl.TRIANGLE_STRIP, i, 3);
+	gl.drawArrays(gl.TRIANGLE_STRIP, i+1, 3);
+	}
+}
+function drawEnv(num, transformM) {
+	axisData = [0,1,0];
+	cDeg[num] += 2.4;
+	var modelVieww =mat4();
+	transformM = mat4();
+    	transformM = mult(transformM, projectionMatrix);
+	modelVieww = mult(modelVieww, viewMatrix);
+	modelVieww = mult(modelVieww, rotate(rotation, axisData));
+	modelVieww = mult(modelVieww, translate(envPositions[num]));
+	modelVieww = mult(modelVieww, scale([19.999,19.999,19.999]));
+	//modelVieww = mult(modelVieww, rotate(cDeg[num], axisData));
+	transformM = mult(transformM, modelVieww);
+	for(var i=0;i<27;i+=4){
+		gl.uniform4fv(color, flatten(cColors[i%11]));
+    	gl.uniformMatrix4fv(modelViewMatrix, false, flatten(transformM));
+	// single triangle strip (EC #2)
+	gl.drawArrays(gl.TRIANGLE_STRIP, i, 3);
+	gl.drawArrays(gl.TRIANGLE_STRIP, i+1, 3);
+	}
 
 	//draw outlines in white(#4)
 	gl.uniform4fv(color, flatten(vec4(1.0, 1.0, 1.0, 1.0)));
@@ -267,7 +348,7 @@ function draww2(num, transformM,timerr) {
 	
 	projectileMatrix = mult(projectileMatrix, rotate(-yangle, [0,1,0]));
     projectileMatrix = mult(projectileMatrix, rotate(-xangle, [1,0,0]));
-	projectileMatrix = mult(projectileMatrix, translate(vec3(0, 0, -3-.25*counter)));
+	projectileMatrix = mult(projectileMatrix, translate(vec3(0, 0, -.25*counter)));
 	transformM = mult(transformM, projectileMatrix);
 	}
 	//transformM = mult(transformM, translate(positions[num]));
@@ -286,8 +367,8 @@ function draww2(num, transformM,timerr) {
 	//draw outlines in white(#4)
 	gl.uniform4fv(color, flatten(vec4(1.0, 1.0, 1.0, 1.0)));
 	gl.drawArrays(gl.LINE_STRIP, 0, 24);
-	for(var i=0; i<3; i++) {
-		if(Math.sqrt(Math.pow(matArray[i][0]-projectileMatrix[0][3],2)+Math.pow(matArray[i][1]-projectileMatrix[2][3],2))<=1){
+	for(var i=0; i<8; i++) {
+		if(Math.sqrt(Math.pow(matArray[i][0]-projectileMatrix[0][3],2)+Math.pow(matArray[i][1]-projectileMatrix[2][3],2))<=1.5){
 			console.log(matArray[i][0]);
 			console.log(projectileMatrix[0][3]);
 			console.log(matArray[i][1]);
