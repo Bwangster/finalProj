@@ -17,10 +17,12 @@ var yangle = 0;
 var xangle = 0;
 var crossH = true;
 var fov = 50;
+var dextral = true;
 var modelViewMatrix;
 var projectionMatrix;
 var orthoProjectionMatrix;
 var viewMatrix;
+var movePos = 0;
 var matArray = [[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0]];
 var deadMat = [false,false,false]
 /*var positions = [
@@ -41,14 +43,14 @@ var deadMat = [false,false,false]
 	]
 	
 	var positions = [
-		vec3(-10, 2.5, -9.6),
-		vec3(-10, 7.5, -9.6),
-		vec3(-10, -2.5, -9.6),
-		vec3(-10, -7.5, -9.6),
-		vec3(10, 2.5, -9.6),
-		vec3(10, 7.5, -9.6),
-		vec3(10, -2.5, -9.6),
-		vec3(10, -7.5, -9.6)
+		vec3(-10, 7, -9.6),
+		vec3(-10, 13, -9.6),
+		vec3(-10, -7, -9.6),
+		vec3(-10, -13, -9.6),
+		vec3(10, 7, -9.6),
+		vec3(10, 13, -9.6),
+		vec3(10, -7, -9.6),
+		vec3(10, -13, -9.6)
 	]
 	var envPositions = [
 		vec3(-10, 10, 0),
@@ -56,8 +58,8 @@ var deadMat = [false,false,false]
 		vec3(10, -10, 0),
 		vec3(-10, -10, 0)
 	]
-var original = vec3(0, -50, -9.6);
-var too = vec3(0, 0, -9.6);
+var original = vec3(-10, -20, -8.6);
+var too = vec3(-10, 0, -8.6);
 var towards = vec3(0, 0, 1);
 
 
@@ -108,10 +110,9 @@ window.onload = function init() {
 			console.log(matArray[0][0]);
 			console.log(matArray[0][1]);
 			}
-		else if(e.keyCode===38) // (#7) .25 units movement
-			zmove-=0.25;
-		else if(e.keyCode===40) // (#7) .25 units movement
-			zmove+=0.25;
+		else if(e.keyCode===38){
+			xmove -= 2.5*Math.sin(radians(yangle));
+            ymove -= 2.5*Math.cos(radians(yangle));}
 		else if(window.event.shiftKey && e.keyCode===187)
 			crossH = !crossH;
 		else if(e.keyCode===73) { // move camera (#9)
@@ -210,7 +211,12 @@ function render() {
 	viewMatrix = mult(viewMatrix, translate(xmove,ymove,zmove));
     	
 	var transformM = mat4();
-	
+	if(dextral) {movePos += .05;}
+	else movePos -= .05;
+
+	if (Math.abs(movePos) > 9){
+		dextral = !dextral;
+	}
 	// draw 8 cubes (#3)
 	for(var i=0; i<8; i++) {
 		//rotate and increase size(EC #4)
@@ -273,6 +279,7 @@ function draww(num, transformM) {
 	modelVieww = mult(modelVieww, viewMatrix);
 	modelVieww = mult(modelVieww, rotate(rotation, axisData));
 	modelVieww = mult(modelVieww, translate(positions[num]));
+	modelVieww = mult(modelVieww, translate(vec3(num%2?movePos:-movePos, 0, 0)));
 	//modelVieww = mult(modelVieww, rotate(cDeg[num], axisData));
 	matArray[num][0]=modelVieww[0][3];
 	matArray[num][1]=modelVieww[2][3];
@@ -297,6 +304,7 @@ function drawDoors(num) {
     	transformM = mult(transformM, projectionMatrix);
 	modelVieww = mult(modelVieww, viewMatrix);
 	modelVieww = mult(modelVieww, translate(doorPositions[num]));
+	modelVieww = mult(modelVieww, scale([2.999,2.999,2.999]));
 	//modelVieww = mult(modelVieww, rotate(cDeg[num], axisData));
 	transformM = mult(transformM, modelVieww);
 	for(var i=0;i<27;i+=4){
@@ -348,7 +356,7 @@ function draww2(num, transformM,timerr) {
 	
 	projectileMatrix = mult(projectileMatrix, rotate(-yangle, [0,1,0]));
     projectileMatrix = mult(projectileMatrix, rotate(-xangle, [1,0,0]));
-	projectileMatrix = mult(projectileMatrix, translate(vec3(0, 0, -.25*counter)));
+	projectileMatrix = mult(projectileMatrix, translate(vec3(0, -1.5, -.25*counter)));
 	transformM = mult(transformM, projectileMatrix);
 	}
 	//transformM = mult(transformM, translate(positions[num]));
